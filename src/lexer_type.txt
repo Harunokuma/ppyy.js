@@ -1,0 +1,9 @@
+﻿KEYWORD			关键字
+NEWLINE			新逻辑行
+INDENT			在原有的基础上缩进一次
+DEDENT			在原有的基础上取消一次缩进
+OPERATOR		操作符
+STRING			字符串（包括引号）
+NUMBER			数字（包括小数）
+INDETIFIER		标识符（变量名、函数名 etc）
+END			文件结束符
