@@ -4,7 +4,6 @@ var keywords = new Array("def", "if", "else", "elif",
     "for", "while", "return", "is", "not", "import",
     "from");
 
-
 var lex = function(input) {
     var tokens = [],
         c, i = 0,
@@ -39,7 +38,7 @@ var lex = function(input) {
         isKeyword = function(s) {
             for (var i = 0; i < keywords.length; i++) {
                 if (s == keywords[i]) {
-                    addToken("KEYWORD", s);
+                    addToken("INDETIFIER", s);
                     return true;
                 }
             }
@@ -75,7 +74,7 @@ var lex = function(input) {
 
         if (isNewline(c)) { //判断是否换行，如果换行则判断缩进变化
             lines++;
-            addToken("NEWLINE", null);
+            addToken("CONTROL", "newline");
             advance();
 
             var subOfIndent = 0;
@@ -84,18 +83,18 @@ var lex = function(input) {
                 advance();
             }
             while (subOfIndent > TotalOfIndent) {
-                addToken("INDENT", null);
+                addToken("CONTROL", "indent");
                 TotalOfIndent++;
             }
             while (subOfIndent < TotalOfIndent) {
-                addToken("DEDENT", null);
+                addToken("CONTROL", "dedent");
                 TotalOfIndent--;
             }
         } else if (isWhiteSpace(c)) { //判断是否为空格
             advance();
         } else if (isOperator(c)) { //判断是否为操作符
             var opr = c;
-            while(isOperator(advance())) opr += c;
+            while (isOperator(advance())) opr += c;
             addToken("OPERATOR", opr);
         } else if (isString(c)) {
             var str = c;
@@ -120,13 +119,13 @@ var lex = function(input) {
             addToken("INDETIFIER", word);
         } else throw "Unrecognized token.";
     }
-    addToken("END", null);
+    addToken("CONTROL", "end");
     return tokens;
 };
 
-fs.readFile('test.py', function(err, data) {
-    if (err) throw err;
-
+exports.makeLex = function() {
+    var data = fs.readFileSync("test.py");
     var result = lex(data.toString());
-    console.log(result);
-});
+    // console.log(result);
+    return result;
+};
