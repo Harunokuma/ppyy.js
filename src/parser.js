@@ -1,4 +1,4 @@
-exports.makeParse = function() {
+exports.Parse = function() {
     var symbol_table = {};
     var scope;
     var token;
@@ -37,6 +37,25 @@ exports.makeParse = function() {
         return s;
     }
 
+    symbol('(name)').nud = itself;
+    symbol("(literal)").nud = itself;
+    symbol('(end)');
+    symbol('(newline)').nud = itself;
+    symbol('(indent)');
+    symbol('(dedent)');
+    symbol(":");
+    symbol(";");
+    symbol(")");
+    symbol("]");
+    symbol("}");
+    symbol(",");
+    symbol("else");
+    symbol("this").nud = function() {
+        scope.reserve(this);
+        this.arity = "this";
+        return this;
+    };
+
     //获取下一个token，如果传入id，则限定当前token的id为id，否则报错
     var advance = function(id) {
         var a, //arity
@@ -70,8 +89,8 @@ exports.makeParse = function() {
             o = symbol_table['(literal)'];
         } else if (a === "CONTROL") {
             o = symbol_table['(' + v + ')'];
-            if(!o){
-            	Error('Unknown control.');
+            if (!o) {
+                Error('Unknown control.');
             }
             a = "control";
         } else {
@@ -146,6 +165,7 @@ exports.makeParse = function() {
         }
     };
 
+    //新建一个作用域
     var new_scope = function() {
         var s = scope;
         scope = Object.create(original_scope);
@@ -154,6 +174,7 @@ exports.makeParse = function() {
         return scope;
     };
 
+    //解析表达式
     var expression = function(rbp) {
         var left;
         var t = token;
@@ -167,6 +188,7 @@ exports.makeParse = function() {
         return left;
     };
 
+    //设定中缀运算符
     var infix = function(id, bp, led) {
         var s = symbol(id, bp);
         s.led = led || function(left) {
@@ -177,7 +199,73 @@ exports.makeParse = function() {
         };
         return s;
     };
+    infix("+", 50);
+    infix("-", 50);
+    infix("*", 60);
+    infix("/", 60);
+    infix("in", 30);
 
+    infix(".", 80, function(left) {
+        this.first = left;
+        if (token.arity !== "name") {
+            Error("Expected a property name.");
+        }
+        token.arity = "literal";
+        this.second = token;
+        this.arity = "binary";
+        advance();
+        return this;
+    });
+
+    infix("[", 80, function(left) {
+        this.first = left;
+        this.second = expression(0);
+        this.arity = "binary";
+        advance("]");
+        return this;
+    });
+
+    infix("?", 20, function(left) {
+        this.first = left;
+        this.second = expression(0);
+        advance(":");
+        this.third = expression(0);
+        this.arity = "ternary";
+        return this;
+    });
+
+    infix("(", 50, function(left) {
+        var a = [];
+        if (left.id === "." || left.id === "[") {
+            this.arity = "ternary";
+            this.first = left.first;
+            this.second = left.second;
+            this.third = a;
+        } else {
+            this.arity = "binary";
+            this.first = left;
+            this.first.arity = "fname";
+            this.second = a;
+            if ((left.arity !== "unary" || left.id !== "function") &&
+                left.arity !== "name" && left.id !== "(" &&
+                left.id !== "&&" && left.id !== "||" && left.id !== "?") {
+                Error("Expected a variable name");
+            }
+        }
+        if (token.id !== ")") {
+            while (true) {
+                a.push(expression(0));
+                if (token.id !== ",") {
+                    break;
+                }
+                advance(",")
+            }
+        }
+        advance(")");
+        return this;
+    })
+
+    //设定右结合中缀运算符
     var infixr = function(id, bp, led) {
         var s = symbol(id, bp);
         s.led = led || function(left) {
@@ -188,7 +276,16 @@ exports.makeParse = function() {
         };
         return s;
     };
+    infixr("&&", 30);
+    infixr("||", 30);
+    infixr("==", 40);
+    infixr("!=", 40);
+    infixr("<", 40);
+    infixr("<=", 40);
+    infixr(">", 40);
+    infixr(">=", 40);
 
+    //设定前缀运算符
     var prefix = function(id, nud) {
         var s = symbol(id);
         s.nud = nud || function() {
@@ -199,7 +296,58 @@ exports.makeParse = function() {
         };
         return s;
     };
+    prefix("!");
+    prefix("-");
+    prefix("(", function() {
+        var e = expression(0);
+        advance(")");
+        return e;
+    });
 
+    prefix("[", function() {
+        var a = [];
+        if (token.id !== "]") {
+            while (true) {
+                a.push(expression(0));
+                if (token.id !== ",") {
+                    break;
+                }
+                advance(",");
+            }
+        }
+        advance("]");
+        this.first = a;
+        this.arity = "unary";
+        return this;
+    });
+
+    prefix("{", function() {
+        var a = [],
+            n, v;
+        if (token.id !== "}") {
+            while (true) {
+                n = token;
+                if (n.arity !== "name" && n.arity !== "literal") {
+                    Error("Bad property name.");
+                }
+                advance();
+                advance(":");
+                v = expression(0);
+                v.key = n.value;
+                a.push(v);
+                if (token.id !== ",") {
+                    break;
+                }
+                advance(",");
+            }
+        }
+        advance("}");
+        this.first = a;
+        this.arity = "unary";
+        return this;
+    });
+
+    //设定赋值运算符符
     var assignment = function(id) {
         return infix(id, 10, function(left) {
             if (left.id !== "." && left.id !== "[" && left.arity !== "name") {
@@ -215,7 +363,11 @@ exports.makeParse = function() {
             return this;
         });
     };
+    assignment("=");
+    assignment("+=");
+    assignment("-=");
 
+    //设定常量
     var constant = function(s, v) {
         var x = symbol(s);
         x.nud = function() {
@@ -228,6 +380,15 @@ exports.makeParse = function() {
         return x;
     }
 
+    constant("true", true);
+    constant("false", false);
+    constant("null", null);
+    constant("pi", 3.141592653589793);
+    constant("Object", {});
+    constant("Array", []);
+
+
+    //解析一条语句，根据是否为关键字将其用std或者expression解析
     var statement = function() {
         var n = token,
             v;
@@ -237,7 +398,7 @@ exports.makeParse = function() {
             return n.std();
         }
         v = expression(0);
-        if (!v.assignment && v.id !== "(" && v.id !== "==") {
+        if (!v.assignment && v.value !== "(" && v.value !== "==") {
             Error("Bad expression statement.");
         }
         advance("(newline)");
@@ -257,21 +418,23 @@ exports.makeParse = function() {
                 a.push(s);
             }
         }
-        return a.length === 0 ? null : a.length === 1 ? a[0] : a;
+        return a.length === 0 ? null : a;
     };
 
-    var stmt = function(s, f) {
-        var x = symbol(s);
-        x.std = f;
-        return x;
-    };
-
+    //解析语句块
     var block = function() {
         advance("(newline)");
         var t = token;
         advance("(indent)");
         return t.std();
     }
+
+    //定义各个关键词的解析方式
+    var stmt = function(s, f) {
+        var x = symbol(s);
+        x.std = f;
+        return x;
+    };
 
     stmt("(indent)", function() {
         new_scope();
@@ -296,13 +459,44 @@ exports.makeParse = function() {
         if (token.id === "else") {
             scope.reverse(token);
             advance();
-            this.third = token.id === "if" ? statement() : block();
+            advance(":");
+            this.third = block();
+        } else if (token.id === "elif") {
+            scope.reverse(token);
+            this.third = statement();
         } else {
             this.third = null;
         }
         this.arity = "statement";
         return this;
     });
+
+    stmt("elif", function() {
+        this.first = expression(0);
+        advance(":");
+        this.second = block();
+        if (token.id === "else") {
+            scope.reverse(token);
+            advance();
+            advance(":");
+            this.third = block();
+        } else if (token.id === "elif") {
+            scope.reverse(token);
+            this.third = statement();
+        } else {
+            this.third = null;
+        }
+        this.arity = "statement";
+        return this;
+    });
+
+    stmt("for", function() {
+        this.first = expression(0);
+        advance(":");
+        this.second = block();
+        this.arity = "statement";
+        return this;
+    })
 
     stmt("break", function() {
         advance("newline");
@@ -359,165 +553,8 @@ exports.makeParse = function() {
         advance("(indent)");
         this.second = statements();
         advance("(dedent)");
-        this.arity = "function";
+        this.arity = "statement";
         scope.pop();
-        return this;
-    });
-
-    infix("(", 50 ,function(left) {
-        var a = [];
-        if (left.id === "." || left.id === "[") {
-            this.arity = "ternary";
-            this.first = left.first;
-            this.second = left.second;
-            this.third = a;
-        } else {
-            this.arity = "binary";
-            this.first = left;
-            this.second = a;
-            if ((left.arity !== "unary" || left.id !== "function") &&
-                left.arity !== "name" && left.id !== "(" &&
-                left.id !== "&&" && left.id !== "||" && left.id !== "?") {
-                Error("Expected a variable name");
-            }
-        }
-        if (token.id !== ")") {
-            while (true) {
-                a.push(expression(0));
-                if (token.id !== ",") {
-                    break;
-                }
-                advance(",")
-            }
-        }
-        advance(")");
-        return this;
-    })
-
-    symbol('(name)').nud = itself;
-    symbol('(end)');
-    symbol('(newline)');
-    symbol('(indent)');
-    symbol('(dedent)');
-    symbol(":");
-    symbol(";");
-    symbol(")");
-    symbol("]");
-    symbol("}");
-    symbol(",");
-    symbol("else");
-
-    constant("true", true);
-    constant("false", false);
-    constant("null", null);
-    constant("pi", 3.141592653589793);
-    constant("Object", {});
-    constant("Array", []);
-
-    symbol("(literal)").nud = itself;
-    symbol("this").nud = function() {
-        scope.reserve(this);
-        this.arity = "this";
-        return this;
-    };
-    assignment("=");
-    assignment("+=");
-    assignment("-=");
-
-    infix("?", 20, function(left) {
-        this.first = left;
-        this.second = expression(0);
-        advance(":");
-        this.third = expression(0);
-        this.arity = "ternary";
-        return this;
-    });
-
-    infixr("&&", 30);
-    infixr("||", 30);
-
-    infixr("==", 40);
-    infixr("!=", 40);
-    infixr("<", 40);
-    infixr("<=", 40);
-    infixr(">", 40);
-    infixr(">=", 40);
-
-    infix("+", 50);
-    infix("-", 50);
-
-    infix("*", 60);
-    infix("/", 60);
-
-    infix(".", 80, function(left) {
-        this.first = left;
-        if (token.arity !== "name") {
-            Error("Expected a property name.");
-        }
-        token.arity = "literal";
-        this.second = token;
-        this.arity = "binary";
-        advance();
-        return this;
-    });
-
-    infix("[", 80, function(left) {
-        this.first = left;
-        this.second = expression(0);
-        this.arity = "binary";
-        advance("]");
-        return this;
-    });
-
-    prefix("!");
-    prefix("-");
-
-    prefix("(", function() {
-        var e = expression(0);
-        advance(")");
-        return e;
-    });
-
-    prefix("[", function() {
-        var a = [];
-        if (token.id !== "]") {
-            while (true) {
-                a.push(expression(0));
-                if (token.id !== ",") {
-                    break;
-                }
-                advance(",");
-            }
-        }
-        advance("]");
-        this.first = a;
-        this.arity = "unary";
-        return this;
-    });
-
-    prefix("{", function() {
-        var a = [],
-            n, v;
-        if (token.id !== "}") {
-            while (true) {
-                n = token;
-                if (n.arity !== "name" && n.arity !== "literal") {
-                    Error("Bad property name.");
-                }
-                advance();
-                advance(":");
-                v = expression(0);
-                v.key = n.value;
-                a.push(v);
-                if (token.id !== ",") {
-                    break;
-                }
-                advance(",");
-            }
-        }
-        advance("}");
-        this.first = a;
-        this.arity = "unary";
         return this;
     });
 
