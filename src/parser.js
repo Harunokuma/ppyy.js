@@ -111,7 +111,7 @@ exports.makeParse = function() {
                 if (!e) {
                     o = symbol_table[n];
                     return o && typeof o !== 'function' ?
-                        o : symbol_table["indent"];
+                        o : symbol_table["(name)"];
                 }
             }
         },
@@ -234,10 +234,10 @@ exports.makeParse = function() {
         if (n.std) {
             advance();
             scope.reverse(n);
-            return n.std;
+            return n.std();
         }
         v = expression(0);
-        if (!v.assignment && v.id !== "(") {
+        if (!v.assignment && v.id !== "(" && v.id !== "==") {
             Error("Bad expression statement.");
         }
         advance("(newline)");
@@ -267,6 +267,7 @@ exports.makeParse = function() {
     };
 
     var block = function() {
+        advance("(newline)");
         var t = token;
         advance("(indent)");
         return t.std();
@@ -327,7 +328,7 @@ exports.makeParse = function() {
     stmt("def", function() {
         var a = [];
 
-        advance();
+        // advance();
         if (token.arity !== "name") {
             Error("Expected a function name.");
         }
@@ -363,7 +364,7 @@ exports.makeParse = function() {
         return this;
     });
 
-    infix("(", function(left) {
+    infix("(", 50 ,function(left) {
         var a = [];
         if (left.id === "." || left.id === "[") {
             this.arity = "ternary";
@@ -393,7 +394,7 @@ exports.makeParse = function() {
         return this;
     })
 
-    symbol('(name)');
+    symbol('(name)').nud = itself;
     symbol('(end)');
     symbol('(newline)');
     symbol('(indent)');
@@ -413,7 +414,7 @@ exports.makeParse = function() {
     constant("Object", {});
     constant("Array", []);
 
-    symbol("literal").nud = itself;
+    symbol("(literal)").nud = itself;
     symbol("this").nud = function() {
         scope.reserve(this);
         this.arity = "this";
@@ -435,8 +436,8 @@ exports.makeParse = function() {
     infixr("&&", 30);
     infixr("||", 30);
 
-    infixr("===", 40);
-    infixr("!==", 40);
+    infixr("==", 40);
+    infixr("!=", 40);
     infixr("<", 40);
     infixr("<=", 40);
     infixr(">", 40);
@@ -470,7 +471,6 @@ exports.makeParse = function() {
 
     prefix("!");
     prefix("-");
-    prefix("typeof");
 
     prefix("(", function() {
         var e = expression(0);

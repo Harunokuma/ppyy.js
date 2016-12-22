@@ -20,8 +20,16 @@ var lex = function(input) {
         });
     };
 
-    var isOperator = function(c) {
-            return /[+\-*\/\^%=(),:.!<>]/.test(c);
+    var isOperator = function(c, opr) {
+            if(!opr){
+                return /[+\-*\/\^%=(),:.!<>\[\]]/.test(c);
+            }
+            else if(/[!=+\-*\/\^%<>]/.test(opr)){
+                return /[=]/.test(c);
+            }
+            else{
+                return false;
+            }
         },
         isDigit = function(c, mode = false) {
             if (mode == false)
@@ -35,15 +43,15 @@ var lex = function(input) {
         isWord = function(c) {
             return typeof c === "string" && !isOperator(c) && !isWhiteSpace(c);
         },
-        isKeyword = function(s) {
-            for (var i = 0; i < keywords.length; i++) {
-                if (s == keywords[i]) {
-                    addToken("INDETIFIER", s);
-                    return true;
-                }
-            }
-            return false;
-        },
+        // isKeyword = function(s) {
+        //     for (var i = 0; i < keywords.length; i++) {
+        //         if (s == keywords[i]) {
+        //             addToken("INDETIFIER", s);
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // },
         isNewline = function(c) {
             return /\n/.test(c);
         },
@@ -94,7 +102,7 @@ var lex = function(input) {
             advance();
         } else if (isOperator(c)) { //判断是否为操作符
             var opr = c;
-            while (isOperator(advance())) opr += c;
+            while (isOperator(advance(), opr)) opr += c;
             addToken("OPERATOR", opr);
         } else if (isString(c)) {
             var str = c;
@@ -114,10 +122,15 @@ var lex = function(input) {
         } else if (isWord(c)) { //判断是否为单词
             var word = c;
             while (isWord(advance())) word += c;
-            if (isKeyword(word))
-                continue;
+            // if (isKeyword(word))
+            //     continue;
             addToken("INDETIFIER", word);
         } else throw "Unrecognized token.";
+    }
+    addToken("CONTROL", "newline");
+    while(TotalOfIndent > 0){
+        addToken("CONTROL", "dedent");
+        TotalOfIndent--;
     }
     addToken("CONTROL", "end");
     return tokens;
