@@ -17,9 +17,8 @@ function go() {
         string = JSON.stringify(e, ['name', 'message', 'from', 'to', 'key',
             'value', 'arity', 'first', 'second', 'third', 'fourth'
         ], 4);
+        console.log(string);
     }
-
-
 }
 
 go();

@@ -1,3 +1,9 @@
+var readlineSync = require("readline-sync");
+in_array = function(array, e) {
+    for (var i = 0; i < array.length && array[i] !== e; i++);
+    return !(i === array.length);
+};
+
 exports.Eval = function() {
     var scope;
 
@@ -39,6 +45,10 @@ exports.Eval = function() {
             this.f[id] = { id: id, value: value };
             return this.f[id];
         },
+        def_v: function(id, value) {
+            this.v[id] = { id: id, value: value };
+            return this.v[id];
+        },
         pop: function() {
             scope = this.parent;
         }
@@ -77,6 +87,10 @@ exports.Eval = function() {
     var eval_stmts = function(tree) {
         for (var i = 0; i < tree.length; i++) {
             matchEval(tree[i]);
+            if (scope.find_v("CONTROL").value === "BREAK" ||
+                scope.find_v("CONTROL").value === "CONTINUE") {
+                break;
+            }
         }
     };
 
@@ -112,6 +126,10 @@ exports.Eval = function() {
                 return matchEval(tree.first).value += getValue(tree.second);
             case "-=":
                 return matchEval(tree.first).value -= getValue(tree.second);
+            case "[":
+                return getValue(tree.first)[getValue(tree.second)];
+            case "in":
+                return in_array(getValue(tree.second), getValue(tree.first));
             case "(":
                 return eval_func(tree);
             default:
@@ -152,7 +170,7 @@ exports.Eval = function() {
                 return list;
             case "{":
                 for (var i = 0; i < tree.first.length; i++) {
-                    dic[first.key] = getValue(tree.first[i]);
+                    dic[tree.first[i].key] = getValue(tree.first[i]);
                 }
                 return dic;
             default:
@@ -172,6 +190,8 @@ exports.Eval = function() {
                 return eval_for(tree);
             case "break":
                 return eval_break(tree);
+            case "continue":
+                return eval_continue(tree);
             case "return":
                 return eval_return(tree);
             default:
@@ -198,6 +218,9 @@ exports.Eval = function() {
         while (getValue(tree.first)) {
             new_scope();
             eval_stmts(tree.second);
+            if (scope.find_v("CONTROL").value === "BREAK") {
+                break;
+            }
             scope.pop();
         }
     };
@@ -214,6 +237,32 @@ exports.Eval = function() {
         }
     };
 
+    var eval_for = function(tree) {
+        if (tree.first.value !== "in") {
+            Error("Unkonwn for statement");
+        }
+        var o = getValue(tree.first.second);
+        // for (var index = 0; index < o.length; index++) {
+        for (var index in o) {
+            new_scope();
+            scope.def_v(tree.first.first.value, o[index]);
+            eval_stmts(tree.second);
+            if (scope.find_v("CONTROL").value === "BREAK") {
+                break;
+            }
+            scope.pop();
+        }
+
+    };
+
+    var eval_break = function(tree) {
+        scope.def_v("CONTROL", "BREAK");
+    };
+
+    var eval_continue = function(tree) {
+        scope.def_v("CONTROL", "CONTINUE");
+    }
+
     var eval_return = function(tree) {
         var first = matchEval(tree.first);
         var value = first.value ? first.value : first;
@@ -222,13 +271,49 @@ exports.Eval = function() {
 
     var set_print = function() {
         var func = function(args) {
+            if (args.length !== 1) {
+                Error("Unexpected arguments in print()");
+            }
             console.log(args[0]);
         }
         scope.def_f("print", func);
     };
 
+    var set_input = function() {
+        var func = function(args) {
+            if (args !== null || args !== undefined) {
+                Error("Unexpected arguments in input()");
+            }
+            var input = readlineSync.question();
+            return input;
+        }
+    }
+
+    var set_range = function() {
+        var func = function(args) {
+            if (args.length === 1) {
+                var list = [];
+                for (var i = 0; i < args[0]; i++) {
+                    list.push(i);
+                }
+                return list;
+            } else if (args.length < 4 && args.length > 1) {
+                var list = [];
+                var gap = args[2] ? args[2] : 1;
+                for (var i = args[0]; i < args[1]; i += gap) {
+                    list.push(i);
+                }
+                return list;
+            } else {
+                Error("Unexpected arguments in range()");
+            }
+        }
+        scope.def_f("range", func);
+    }
+
     var set_builtin = function() {
         set_print();
+        set_range();
     };
 
     var getValue = function(tree) {

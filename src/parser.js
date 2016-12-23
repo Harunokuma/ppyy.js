@@ -507,6 +507,15 @@ exports.Parse = function() {
         return this;
     });
 
+    stmt("continue", function() {
+        advance("newline");
+        if (token.id !== "(dedent)") {
+            Error("Unreachable statement.");
+        }
+        this.arity = "statement";
+        return this;
+    });
+
     stmt("return", function() {
         if (token.id !== "newline") {
             this.first = expression(0);
