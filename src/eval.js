@@ -1,4 +1,4 @@
-var readlineSync = require("readline-sync");
+// var readlineSync = require("readline-sync");
 in_array = function(array, e) {
     for (var i = 0; i < array.length && array[i] !== e; i++);
     return !(i === array.length);
@@ -279,15 +279,15 @@ exports.Eval = function() {
         scope.def_f("print", func);
     };
 
-    var set_input = function() {
-        var func = function(args) {
-            if (args !== null || args !== undefined) {
-                Error("Unexpected arguments in input()");
-            }
-            var input = readlineSync.question();
-            return input;
-        }
-    }
+    // var set_input = function() {
+    //     var func = function(args) {
+    //         if (args !== null || args !== undefined) {
+    //             Error("Unexpected arguments in input()");
+    //         }
+    //         var input = readlineSync.question();
+    //         return input;
+    //     }
+    // }
 
     var set_range = function() {
         var func = function(args) {
