@@ -499,7 +499,7 @@ exports.Parse = function() {
     })
 
     stmt("break", function() {
-        advance("newline");
+        advance("(newline)");
         if (token.id !== "(dedent)") {
             throw ("Unreachable statement.");
         }
@@ -508,7 +508,7 @@ exports.Parse = function() {
     });
 
     stmt("continue", function() {
-        advance("newline");
+        advance("(newline)");
         if (token.id !== "(dedent)") {
             throw ("Unreachable statement.");
         }
@@ -517,10 +517,10 @@ exports.Parse = function() {
     });
 
     stmt("return", function() {
-        if (token.id !== "newline") {
+        if (token.id !== "(newline)") {
             this.first = expression(0);
         }
-        advance("newline");
+        advance("(newline)");
         if (token.id !== "(dedent)") {
             throw ("Unreachable statement.");
         }

@@ -83,7 +83,7 @@ exports.Eval = function() {
             case "fname":
                 return scope.find_f(tree.value);
             case "literal":
-                return tree;
+                return tree.value;
             default:
                 throw ("Unknown arity: " + tree.arity);
         }
@@ -218,7 +218,7 @@ exports.Eval = function() {
             var rtn;
             new_scope();
             for (var i = 0; i < tree.first.length; i++) {
-                scope.find_v(tree.first[i].value).value = args[i];
+                scope.def_v(tree.first[i].value, args[i]);
             }
             eval_stmts(tree.second);
             rtn = scope.find_v("__rtn").value;
