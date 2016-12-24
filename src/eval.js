@@ -63,7 +63,7 @@ exports.Eval = function() {
         scope.parent = s;
 
         scope.v["__CONTROL"] = { id: "__CONTROL", value: null };
-        scope.v["__rtn"] = { id: "__rtn", value: null };
+        scope.v["__rtn"] = { id: "__rtn", value: undefined };
 
         return scope;
     };
@@ -223,7 +223,7 @@ exports.Eval = function() {
             eval_stmts(tree.second);
             rtn = scope.find_v("__rtn").value;
             scope.pop()
-            if (rtn !== null) {
+            if (rtn !== undefined) {
                 return rtn;
             }
         }
