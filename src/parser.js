@@ -247,7 +247,7 @@ exports.Parse = function() {
             this.first.arity = "fname";
             this.second = a;
             if ((left.arity !== "unary" || left.id !== "function") &&
-                left.arity !== "name" && left.arity !== "fname" && left.id !== "(" &&
+                left.arity !== "name" && left.id !== "(" &&
                 left.id !== "&&" && left.id !== "||" && left.id !== "?") {
                 throw ("Expected a variable name");
             }

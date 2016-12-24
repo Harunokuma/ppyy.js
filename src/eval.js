@@ -52,7 +52,7 @@ exports.Eval = function() {
         },
         pop: function() {
             scope = this.parent;
-        },
+        }
     };
 
     var new_scope = function() {
@@ -61,10 +61,6 @@ exports.Eval = function() {
         scope.v = {};
         scope.f = {};
         scope.parent = s;
-
-        scope.v["__CONTROL"] = { id: "__CONTROL", value: null };
-        scope.v["__rtn"] = { id: "__rtn", value: null };
-
         return scope;
     };
 
@@ -223,9 +219,7 @@ exports.Eval = function() {
             eval_stmts(tree.second);
             rtn = scope.find_v("__rtn").value;
             scope.pop()
-            if (rtn !== null) {
-                return rtn;
-            }
+            return rtn;
         }
         scope.def_f(tree.name, func);
     };
