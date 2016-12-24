@@ -13,10 +13,10 @@ exports.Parse = function() {
     //symbol原型
     var original_symbol = {
         nud: function() {
-            Error('Undefined.');
+            throw ('Undefined.');
         },
         led: function(left) {
-            Error("Missing operator.");
+            throw ("Missing operator.");
         }
     };
 
@@ -64,7 +64,7 @@ exports.Parse = function() {
             v; //value
 
         if (id && token.id !== id) {
-            Error('Expected "' + id + '".');
+            throw ('Expected "' + id + '".');
         }
         if (token_nr >= tokens.length) {
             token = symbol_table['(end)'];
@@ -82,7 +82,7 @@ exports.Parse = function() {
             o = symbol_table[v];
             a = "operator"
             if (!o) {
-                Error('Unknown operator.');
+                throw ('Unknown operator.');
             }
         } else if (a === "STRING" || a === "NUMBER") {
             a = 'literal';
@@ -90,11 +90,11 @@ exports.Parse = function() {
         } else if (a === "CONTROL") {
             o = symbol_table['(' + v + ')'];
             if (!o) {
-                Error('Unknown control.');
+                throw ('Unknown control.');
             }
             a = "control";
         } else {
-            Error("Unexpected token.");
+            throw ("Unexpected token.");
         }
         token = Object.create(o);
         token.value = v;
@@ -107,7 +107,7 @@ exports.Parse = function() {
         define: function(n) {
             var t = this.def[n.value];
             if (typeof t === 'obejct') {
-                Error(t.reversed ? "Already reversed." : "Already defined.");
+                throw (t.reversed ? "Already reversed." : "Already defined.");
             }
             this.def[n.value] = n;
             n.reversed = false;
@@ -157,7 +157,7 @@ exports.Parse = function() {
                     return;
                 }
                 if (t.arity === "name") {
-                    Error("Already defined.");
+                    throw ("Already defined.");
                 }
             }
             this.def[n.value] = n;
@@ -208,7 +208,7 @@ exports.Parse = function() {
     infix(".", 80, function(left) {
         this.first = left;
         if (token.arity !== "name") {
-            Error("Expected a property name.");
+            throw ("Expected a property name.");
         }
         token.arity = "literal";
         this.second = token;
@@ -249,7 +249,7 @@ exports.Parse = function() {
             if ((left.arity !== "unary" || left.id !== "function") &&
                 left.arity !== "name" && left.id !== "(" &&
                 left.id !== "&&" && left.id !== "||" && left.id !== "?") {
-                Error("Expected a variable name");
+                throw ("Expected a variable name");
             }
         }
         if (token.id !== ")") {
@@ -328,7 +328,7 @@ exports.Parse = function() {
             while (true) {
                 n = token;
                 if (n.arity !== "name" && n.arity !== "literal") {
-                    Error("Bad property name.");
+                    throw ("Bad property name.");
                 }
                 advance();
                 advance(":");
@@ -351,7 +351,7 @@ exports.Parse = function() {
     var assignment = function(id) {
         return infix(id, 10, function(left) {
             if (left.id !== "." && left.id !== "[" && left.arity !== "name") {
-                Error("Bad lvalue.");
+                throw ("Bad lvalue.");
             }
             if (!scope.isLocal(left.value)) {
                 scope.define(left.value);
@@ -399,7 +399,7 @@ exports.Parse = function() {
         }
         v = expression(0);
         if (!v.assignment && v.value !== "(" && v.value !== "==") {
-            Error("Bad expression statement.");
+            throw ("Bad expression statement.");
         }
         advance("(newline)");
         return v;
@@ -501,7 +501,7 @@ exports.Parse = function() {
     stmt("break", function() {
         advance("newline");
         if (token.id !== "(dedent)") {
-            Error("Unreachable statement.");
+            throw ("Unreachable statement.");
         }
         this.arity = "statement";
         return this;
@@ -510,7 +510,7 @@ exports.Parse = function() {
     stmt("continue", function() {
         advance("newline");
         if (token.id !== "(dedent)") {
-            Error("Unreachable statement.");
+            throw ("Unreachable statement.");
         }
         this.arity = "statement";
         return this;
@@ -522,7 +522,7 @@ exports.Parse = function() {
         }
         advance("newline");
         if (token.id !== "(dedent)") {
-            Error("Unreachable statement.");
+            throw ("Unreachable statement.");
         }
         this.arity = "statement";
         return this;
@@ -533,7 +533,7 @@ exports.Parse = function() {
 
         // advance();
         if (token.arity !== "name") {
-            Error("Expected a function name.");
+            throw ("Expected a function name.");
         }
         scope.define(token);
         this.name = token.value;
@@ -544,7 +544,7 @@ exports.Parse = function() {
         if (token.id !== ")") {
             while (true) {
                 if (token.arity !== "name") {
-                    Error("Expected a parameter name.");
+                    throw ("Expected a parameter name.");
                 }
                 scope.define(token);
                 a.push(token);

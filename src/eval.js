@@ -18,8 +18,9 @@ exports.Eval = function() {
                 }
                 e = e.parent;
                 if (!e) {
-                    this.v[id] = { id: id, value: null };
-                    return this.v[id];
+                    // this.v[id] = { id: id, value: null };
+                    // return this.v[id];
+                    return null;
                 }
             }
         },
@@ -33,14 +34,14 @@ exports.Eval = function() {
                 }
                 e = e.parent;
                 if (!e) {
-                    Error("Nonexistent function " + id + "()");
+                    throw ("Nonexistent function " + id + "()");
                 }
             }
         },
         def_f: function(id, value) {
             var o = this.f[id];
             if (o) {
-                Error("Redefine function " + id + "()");
+                throw ("Redefine function " + id + "()");
             }
             this.f[id] = { id: id, value: value };
             return this.f[id];
@@ -80,7 +81,7 @@ exports.Eval = function() {
             case "literal":
                 return tree;
             default:
-                Error("Unknown arity: " + tree.arity);
+                throw ("Unknown arity: " + tree.arity);
         }
     };
 
@@ -121,10 +122,19 @@ exports.Eval = function() {
             case ">":
                 return getValue(tree.first) > getValue(tree.second);
             case "=":
+                if (matchEval(tree.first) === null) {
+                    scope.def_v(tree.first.value, 0);
+                }
                 return matchEval(tree.first).value = getValue(tree.second);
             case "+=":
+                if (matchEval(tree.first) === null) {
+                    throw ("Undefined variable " + tree.first.value);
+                }
                 return matchEval(tree.first).value += getValue(tree.second);
             case "-=":
+                if (matchEval(tree.first) === null) {
+                    throw ("Undefined variable " + tree.first.value);
+                }
                 return matchEval(tree.first).value -= getValue(tree.second);
             case "[":
                 return getValue(tree.first)[getValue(tree.second)];
@@ -133,7 +143,7 @@ exports.Eval = function() {
             case "(":
                 return eval_func(tree);
             default:
-                Error("Unknown operator: " + tree.value);
+                throw ("Unknown operator: " + tree.value);
         }
     };
 
@@ -151,7 +161,7 @@ exports.Eval = function() {
             case "?":
                 return getValue(tree.first) ? getValue(tree.second) : getValue(tree.third);
             default:
-                Error("Unknown operator: " + tree.value);
+                throw ("Unknown operator: " + tree.value);
         }
     };
 
@@ -174,7 +184,7 @@ exports.Eval = function() {
                 }
                 return dic;
             default:
-                Error("Unknown operator: " + tree.value);
+                throw ("Unknown operator: " + tree.value);
         }
     };
 
@@ -195,7 +205,7 @@ exports.Eval = function() {
             case "return":
                 return eval_return(tree);
             default:
-                Error("Unknown statement: " + tree.value);
+                throw ("Unknown statement: " + tree.value);
         }
     };
 
@@ -239,7 +249,7 @@ exports.Eval = function() {
 
     var eval_for = function(tree) {
         if (tree.first.value !== "in") {
-            Error("Unkonwn for statement");
+            throw ("Unkonwn for statement");
         }
         var o = getValue(tree.first.second);
         // for (var index = 0; index < o.length; index++) {
@@ -272,7 +282,7 @@ exports.Eval = function() {
     var set_print = function() {
         var func = function(args) {
             if (args.length !== 1) {
-                Error("Unexpected arguments in print()");
+                throw ("Unexpected arguments in print()");
             }
             console.log(args[0]);
         }
@@ -282,7 +292,7 @@ exports.Eval = function() {
     // var set_input = function() {
     //     var func = function(args) {
     //         if (args !== null || args !== undefined) {
-    //             Error("Unexpected arguments in input()");
+    //             throw("Unexpected arguments in input()");
     //         }
     //         var input = readlineSync.question();
     //         return input;
@@ -305,7 +315,7 @@ exports.Eval = function() {
                 }
                 return list;
             } else {
-                Error("Unexpected arguments in range()");
+                throw ("Unexpected arguments in range()");
             }
         }
         scope.def_f("range", func);
@@ -318,7 +328,9 @@ exports.Eval = function() {
 
     var getValue = function(tree) {
         var sec = matchEval(tree);
-        if (sec.value === null || sec.value === undefined) {
+        if (sec === null) {
+            throw ("Undefined variable " + tree.value);
+        } else if (sec.value === null || sec.value === undefined) {
             return sec;
         } else {
             return sec.value;
