@@ -34,7 +34,7 @@ exports.Eval = function() {
                 }
                 e = e.parent;
                 if (!e) {
-                    throw ("Nonexistent function " + id + "()");
+                    throw ("Undefined function " + id + "()");
                 }
             }
         },
@@ -88,8 +88,8 @@ exports.Eval = function() {
     var eval_stmts = function(tree) {
         for (var i = 0; i < tree.length; i++) {
             matchEval(tree[i]);
-            if (scope.find_v("CONTROL").value === "BREAK" ||
-                scope.find_v("CONTROL").value === "CONTINUE") {
+            if (scope.find_v("__CONTROL").value === "BREAK" ||
+                scope.find_v("__CONTROL").value === "CONTINUE") {
                 break;
             }
         }
@@ -217,7 +217,7 @@ exports.Eval = function() {
                 scope.find_v(tree.first[i].value).value = args[i];
             }
             eval_stmts(tree.second);
-            rtn = scope.find_v("rtn").value;
+            rtn = scope.find_v("__rtn").value;
             scope.pop()
             return rtn;
         }
@@ -228,7 +228,7 @@ exports.Eval = function() {
         while (getValue(tree.first)) {
             new_scope();
             eval_stmts(tree.second);
-            if (scope.find_v("CONTROL").value === "BREAK") {
+            if (scope.find_v("__CONTROL").value === "BREAK") {
                 break;
             }
             scope.pop();
@@ -257,7 +257,7 @@ exports.Eval = function() {
             new_scope();
             scope.def_v(tree.first.first.value, o[index]);
             eval_stmts(tree.second);
-            if (scope.find_v("CONTROL").value === "BREAK") {
+            if (scope.find_v("__CONTROL").value === "BREAK") {
                 break;
             }
             scope.pop();
@@ -266,17 +266,17 @@ exports.Eval = function() {
     };
 
     var eval_break = function(tree) {
-        scope.def_v("CONTROL", "BREAK");
+        scope.def_v("__CONTROL", "BREAK");
     };
 
     var eval_continue = function(tree) {
-        scope.def_v("CONTROL", "CONTINUE");
+        scope.def_v("__CONTROL", "CONTINUE");
     }
 
     var eval_return = function(tree) {
         var first = matchEval(tree.first);
         var value = first.value ? first.value : first;
-        scope.find_v("rtn").value = value;
+        scope.find_v("__rtn").value = value;
     };
 
     var set_print = function() {
