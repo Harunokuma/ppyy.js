@@ -1,7 +1,3 @@
-// var keywords = new Array("def", "if", "else", "elif",
-//     "for", "while", "return", "is", "not", "import",
-//     "from");
-
 exports.Lex = function() {
     var fs = require("fs");
     var lex = function(input) {
@@ -42,15 +38,6 @@ exports.Lex = function() {
             isWord = function(c) {
                 return typeof c === "string" && !isOperator(c) && !isWhiteSpace(c);
             },
-            // isKeyword = function(s) {
-            //     for (var i = 0; i < keywords.length; i++) {
-            //         if (s == keywords[i]) {
-            //             addToken("INDETIFIER", s);
-            //             return true;
-            //         }
-            //     }
-            //     return false;
-            // },
             isNewline = function(c) {
                 return /\n/.test(c);
             },
@@ -124,8 +111,6 @@ exports.Lex = function() {
             } else if (isWord(c)) { //判断是否为单词
                 var word = c;
                 while (isWord(advance())) word += c;
-                // if (isKeyword(word))
-                //     continue;
                 addToken("INDETIFIER", word);
             } else throw "Unrecognized token.";
         }
