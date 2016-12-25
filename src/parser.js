@@ -1,6 +1,5 @@
 exports.Parse = function() {
     var symbol_table = {};
-    var scope;
     var token;
     var tokens;
     var token_nr;
@@ -51,7 +50,6 @@ exports.Parse = function() {
     symbol(",");
     symbol("else");
     symbol("this").nud = function() {
-        scope.reserve(this);
         this.arity = "this";
         return this;
     };
@@ -76,7 +74,8 @@ exports.Parse = function() {
         v = t.value;
         a = t.type;
         if (a === 'INDETIFIER') {
-            o = scope.find(v);
+            o = symbol_table[v];
+            o = (o && typeof o !== 'function') ? o : symbol_table["(name)"];
             a = "name";
         } else if (a === 'OPERATOR') {
             o = symbol_table[v];
@@ -100,78 +99,6 @@ exports.Parse = function() {
         token.value = v;
         token.arity = a;
         return token;
-    };
-
-    //scope原型
-    var original_scope = {
-        define: function(n) {
-            var t = this.def[n.value];
-            if (typeof t === 'obejct') {
-                throw (t.reversed ? "Already reversed." : "Already defined.");
-            }
-            this.def[n.value] = n;
-            n.reversed = false;
-            n.nud = itself;
-            n.led = null;
-            n.std = null;
-            n.lbp = 0;
-            n.scope = scope;
-            return n;
-        },
-        find: function(n) {
-            var e = this,
-                o;
-            while (true) {
-                o = e.def[n];
-                if (o && typeof o !== 'function') {
-                    return e.def[n];
-                }
-                e = e.parent;
-                if (!e) {
-                    o = symbol_table[n];
-                    return o && typeof o !== 'function' ?
-                        o : symbol_table["(name)"];
-                }
-            }
-        },
-        isLocal: function(n) {
-            var e = this,
-                o;
-            o = e.def[n];
-            if (o && typeof o !== 'function') {
-                return true;
-            } else {
-                return false;
-            }
-        },
-        pop: function() {
-            scope = this.parent;
-        },
-        reverse: function(n) {
-            if (n.arity !== "name" || n.reversed) {
-                return;
-            }
-            var t = this.def[n.value];
-            if (t) {
-                if (t.reversed) {
-                    return;
-                }
-                if (t.arity === "name") {
-                    throw ("Already defined.");
-                }
-            }
-            this.def[n.value] = n;
-            n.reversed = true;
-        }
-    };
-
-    //新建一个作用域
-    var new_scope = function() {
-        var s = scope;
-        scope = Object.create(original_scope);
-        scope.def = {};
-        scope.parent = s;
-        return scope;
     };
 
     //解析表达式
@@ -289,7 +216,6 @@ exports.Parse = function() {
     var prefix = function(id, nud) {
         var s = symbol(id);
         s.nud = nud || function() {
-            scope.reverse(this);
             this.first = expression(70);
             this.arity = "unary";
             return this;
@@ -353,9 +279,6 @@ exports.Parse = function() {
             if (left.id !== "." && left.id !== "[" && left.arity !== "name") {
                 throw ("Bad lvalue.");
             }
-            if (!scope.isLocal(left.value)) {
-                scope.define(left.value);
-            }
             this.first = left;
             this.second = expression(9);
             this.assignment = true;
@@ -371,7 +294,6 @@ exports.Parse = function() {
     var constant = function(s, v) {
         var x = symbol(s);
         x.nud = function() {
-            scope.reverse(this);
             this.value = symbol_table[this.id].value;
             this.arity = "literal";
             return this;
@@ -394,7 +316,6 @@ exports.Parse = function() {
             v;
         if (n.std) {
             advance();
-            scope.reverse(n);
             return n.std();
         }
         v = expression(0);
@@ -437,10 +358,8 @@ exports.Parse = function() {
     };
 
     stmt("(indent)", function() {
-        new_scope();
         var a = statements();
         advance("(dedent)");
-        scope.pop();
         return a;
     });
 
@@ -457,12 +376,10 @@ exports.Parse = function() {
         advance(":");
         this.second = block();
         if (token.id === "else") {
-            scope.reverse(token);
             advance();
             advance(":");
             this.third = block();
         } else if (token.id === "elif") {
-            scope.reverse(token);
             this.third = statement();
         } else {
             this.third = null;
@@ -476,12 +393,10 @@ exports.Parse = function() {
         advance(":");
         this.second = block();
         if (token.id === "else") {
-            scope.reverse(token);
             advance();
             advance(":");
             this.third = block();
         } else if (token.id === "elif") {
-            scope.reverse(token);
             this.third = statement();
         } else {
             this.third = null;
@@ -535,18 +450,15 @@ exports.Parse = function() {
         if (token.arity !== "name") {
             throw ("Expected a function name.");
         }
-        scope.define(token);
         this.name = token.value;
         advance();
 
-        new_scope();
         advance("(");
         if (token.id !== ")") {
             while (true) {
                 if (token.arity !== "name") {
                     throw ("Expected a parameter name.");
                 }
-                scope.define(token);
                 a.push(token);
                 advance();
                 if (token.id !== ",") {
@@ -563,7 +475,6 @@ exports.Parse = function() {
         this.second = statements();
         advance("(dedent)");
         this.arity = "statement";
-        scope.pop();
         return this;
     });
 
@@ -571,11 +482,9 @@ exports.Parse = function() {
         tokens = source;
         // console.log(tokens)
         token_nr = 0;
-        new_scope();
         advance();
         var s = statements();
         advance("(end)");
-        scope.pop();
         return s;
     }
 }
