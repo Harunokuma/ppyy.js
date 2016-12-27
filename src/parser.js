@@ -319,9 +319,9 @@ exports.Parse = function() {
             return n.std();
         }
         v = expression(0);
-        if (!v.assignment && v.value !== "(" && v.value !== "==") {
-            throw ("Bad expression statement.");
-        }
+        // if (!v.assignment && v.value !== "(" && v.value !== "==") {
+        //     throw ("Bad expression statement.");
+        // }
         advance("(newline)");
         return v;
     }

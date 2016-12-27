@@ -51,6 +51,9 @@ exports.Lex = function() {
                     return /[']/.test(c);
                 else if (mode == '"')
                     return /["]/.test(c);
+            },
+            isComment = function(c) {
+                return /[#]/.test(c);
             };
 
         var isCorrectNumber = function(num) {
@@ -84,7 +87,7 @@ exports.Lex = function() {
                     addToken("CONTROL", "dedent");
                     TotalOfIndent--;
                 }
-                while (isNewline(c)) {
+                while (isNewline(c) || isIndentation(c) || isWhiteSpace(c)) {
                     advance();
                 }
             } else if (isWhiteSpace(c)) { //判断是否为空格
@@ -108,13 +111,19 @@ exports.Lex = function() {
                 if (!isCorrectNumber(num))
                     throw "Error number " + num + " in line " + lines;
                 addToken("NUMBER", Number(num));
+            } else if (isComment(c)) {
+                while (!isNewline(c) && i < input.length) {
+                    advance();
+                }
             } else if (isWord(c)) { //判断是否为单词
                 var word = c;
                 while (isWord(advance())) word += c;
                 addToken("INDETIFIER", word);
             } else throw "Unrecognized token.";
         }
-        addToken("CONTROL", "newline");
+        if (tokens[tokens.length - 1].value != "newline") {
+            addToken("CONTROL", "newline");
+        }
         while (TotalOfIndent > 0) {
             addToken("CONTROL", "dedent");
             TotalOfIndent--;
