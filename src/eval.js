@@ -109,6 +109,8 @@ exports.Eval = function() {
                 return getValue(tree.first) * getValue(tree.second);
             case "/":
                 return getValue(tree.first) / getValue(tree.second);
+            case "%":
+                return getValue(tree.first) % getValue(tree.second);
             case "&&":
                 return getValue(tree.first) && getValue(tree.second);
             case "||":
