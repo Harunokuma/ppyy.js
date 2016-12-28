@@ -1,8 +1,9 @@
-def add(a, b):
-	
-
-	return a + b
-print(add(1,2))
-for i in range(5,15,3):
-	print(i)
-	# print("hh")
+def work(a):
+	for i in range(5, a, 3):
+		if i /5 == 1:
+			continue
+		if i == 17:
+			break
+		print(i)
+	return "ok"
+print(work(20))

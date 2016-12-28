@@ -237,6 +237,7 @@ exports.Eval = function() {
             new_scope();
             eval_stmts(tree.second);
             if (scope.find_v("__CONTROL").value === "BREAK") {
+                scope.pop();
                 break;
             }
             scope.pop();
@@ -266,6 +267,7 @@ exports.Eval = function() {
             scope.def_v(tree.first.first.value, o[index]);
             eval_stmts(tree.second);
             if (scope.find_v("__CONTROL").value === "BREAK") {
+                scope.pop();
                 break;
             }
             scope.pop();
